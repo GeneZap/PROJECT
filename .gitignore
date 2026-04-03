@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Large / generated data (keep CSV in backend/data tracked if you want)
+backend/bacterial_dna/
+*.zip
+
+# GitHub rejects blobs >100MB; keep these locally or use Git LFS / releases
+backend/V2_Model_Output/v2_multi_input_model.pkl
+backend/V3_Model_Output/v3_vision_model.h5
+backend/V3_CNN MODEL TRAINING/V3_Model_Output/v3_vision_model.h5
+
+# Optional: uncomment if model binaries are large or secret
+# backend/models/*.pkl
+# backend/models/*.h5
