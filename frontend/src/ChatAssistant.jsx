@@ -11,10 +11,6 @@ const QUICK_PROMPTS = [
   'Pitch demo mode',
 ]
 
-/**
- * @param {string} text
- * @param {{ hasResult: boolean; reportTab: string; fileName: string | null; loading: boolean }} ctx
- */
 function replyFor(text, ctx) {
   const q = text.toLowerCase().trim()
   if (!q) return "Type a question or tap a quick prompt below."

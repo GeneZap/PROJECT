@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from quad_engine_inference import cgr_png_bytes_v3_style, run_quad_engines
+from v2_pharmacology_table import merge_v2_pharmacology_into_payload
 
 _BASES = ("A", "C", "G", "T")
 _KMER_ORDER_4 = ["".join(p) for p in itertools.product(_BASES, repeat=4)]
@@ -521,4 +522,5 @@ def analyze_sequence_bytes(raw: bytes, *, pitch_demo: bool = False) -> dict[str,
         payload = apply_pitch_demo_profile(sequence, payload)
     else:
         payload = attach_susceptibility_profile(payload)
+    payload = merge_v2_pharmacology_into_payload(payload, header)
     return payload

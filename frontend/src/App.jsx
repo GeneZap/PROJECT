@@ -28,7 +28,6 @@ import {
 
 const ANALYZE_URL = 'http://localhost:8000/analyze'
 
-/** Premium desaturated clinical palette */
 const CLR_DANGER = '#D97373'
 const CLR_SAFE = '#6EBF9A'
 const CLR_SCAN = '#3BDBE9'
@@ -41,7 +40,6 @@ const DISPLAY_PLACEHOLDER = {
   header: 'contig_001 | draft assembly | pending metadata',
 }
 
-/** UI guarantee: never show empty CARD panel */
 const V4_CARD_FALLBACK_HITS = [
   {
     gene: 'blaTEM-1',
@@ -59,7 +57,6 @@ const V4_CARD_FALLBACK_HITS = [
   },
 ]
 
-/** When API omits susceptibility_profile, show clinically aligned copy for demo */
 const FALLBACK_SUSCEPTIBILITY = {
   resistant_to: [
     'Penicillins — avoid Amoxicillin, Piperacillin, and related penicillin-class agents (blaTEM-1–mediated hydrolysis).',
@@ -111,7 +108,6 @@ function formatFileSize(bytes) {
   return `${n < 10 && i > 0 ? n.toFixed(1) : Math.round(n)} ${u[i]}`
 }
 
-/** Desaturated risk pills — enterprise scan-friendly */
 function riskTierPill(tier) {
   const u = String(tier || 'MODERATE').toUpperCase()
   if (u === 'CRITICAL')
@@ -125,7 +121,6 @@ function riskTierPill(tier) {
   return 'bg-[var(--gz-surface)] text-[var(--gz-badge-neutral-fg)] ring-1 ring-[var(--gz-border)]'
 }
 
-/** Semi-circle + bar visualization for CV mapping accuracy */
 function CvAccuracyGauge({ percent, label = 'CV species mapping accuracy' }) {
   const p = Math.min(100, Math.max(0, Number(percent) || 0))
   const r = 72
@@ -267,7 +262,6 @@ function InstrumentMetricsPanel({ report, placeholderLength, placeholderGc }) {
   )
 }
 
-/** Sleek geometric fractal stand-in when no CGR PNG is available */
 function CgrFractalPlaceholder() {
   return (
     <figure
@@ -987,7 +981,6 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [pitchDemo, setPitchDemo] = useState(true)
   const [reportTab, setReportTab] = useState('overview')
-  /** When a report exists, intake is collapsed into a dropdown until expanded */
   const [intakeExpanded, setIntakeExpanded] = useState(false)
   const [theme, setTheme] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('genezap-theme') === 'light' ? 'light' : 'dark',
@@ -1000,7 +993,7 @@ export default function App() {
     try {
       localStorage.setItem('genezap-theme', theme)
     } catch {
-      /* ignore */
+      void 0
     }
   }, [theme])
 

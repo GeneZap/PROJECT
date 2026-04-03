@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* —— GeneZap theme tokens (switch with data-theme on <html>) —— */
 :root[data-theme="dark"],
 :root:not([data-theme]) {
   color-scheme: dark;
@@ -23,7 +22,6 @@
   --gz-shadow-glass: 0 24px 48px -24px rgba(0, 0, 0, 0.55);
   --gz-shadow-deep: 0 24px 64px -20px rgba(0, 0, 0, 0.65);
   --color-gz-label: #647892;
-  /* Cyan UI accents (readable on dark glass) */
   --gz-cyan-ui: #22d3ee;
   --gz-cyan-ui-soft: #67e8f9;
   --gz-cyan-ui-faint: #a5f3fc;
@@ -90,7 +88,6 @@
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Status accents (same in both themes) */
   --color-gz-success: #6ebf9a;
   --color-gz-scan: #3bdbe9;
   --color-gz-danger: #d97373;
@@ -196,7 +193,6 @@ button:focus-visible {
   }
 }
 
-/* Page atmosphere (grid + vignette) */
 .gz-page-grid {
   background-image:
     linear-gradient(var(--gz-grid-line) 1px, transparent 1px),
