@@ -11,13 +11,14 @@
 [![Tech](https://img.shields.io/badge/Stack-Python%20%7C%20React%20%7C%20CNN-00F2FE?style=for-the-badge)](https://github.com/)
 [![Offline](https://img.shields.io/badge/Mode-Fully%20Offline-10B981?style=for-the-badge&logo=shield)](https://github.com/)
 
-<br />
+<!-- <br />
 
 <a href="https://YOUR-LIVE-SITE-URL.vercel.app" target="_blank">
   <img src="https://img.shields.io/badge/🚀%20Live%20Demo-Click%20To%20Open%20App-00F2FE?style=for-the-badge&logo=vercel" alt="Live Demo" height="40" />
 </a>
 
-<br /><br />
+<br /> -->
+<br />
 
 ---
 
@@ -270,25 +271,10 @@ Navigate to [http://localhost:5173](http://localhost:5173) and upload one of the
 
 ---
 
-## 🛠️ Troubleshooting
-
-| Error | Fix |
-| :--- | :--- |
-| `"Wrong file type"` | Only `.fna` files are accepted. Rename or re-export if needed. |
-| `Model not found` | Ensure all `.pkl` (V1/V2) and `.h5` (V3) model files are in their respective folders. |
-| Environment issues | Use Python 3.10+, run `pip install -r requirements.txt`, verify folder structure. |
-| Salmonella profile not triggering | Confirm the FASTA header `>` line contains the word `Salmonella` — the parser reads the header directly. |
-
----
-
-
 
 <div align="center">
 
 Made with ❤️ for the Hackathon &nbsp;|&nbsp; **GeneZap** — Genomics at the Speed of Care
-
-[![GitHub stars](https://img.shields.io/github/stars/YOUR_USERNAME/genezap?style=social)](https://github.com/YOUR_USERNAME/genezap)
-[![GitHub forks](https://img.shields.io/github/forks/YOUR_USERNAME/genezap?style=social)](https://github.com/YOUR_USERNAME/genezap/fork)
 
 *Maintained April 2026*
 
