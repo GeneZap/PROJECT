@@ -6,7 +6,10 @@ import base64
 import hashlib
 import io
 import itertools
+import logging
 from typing import Any
+
+_log = logging.getLogger("genezap.analysis")
 
 import matplotlib
 
@@ -473,7 +476,12 @@ def attach_susceptibility_profile(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
-def analyze_sequence_bytes(raw: bytes, *, pitch_demo: bool = False) -> dict[str, Any]:
+def analyze_sequence_bytes(
+    raw: bytes,
+    *,
+    pitch_demo: bool = False,
+    use_integrated_real: bool = False,
+) -> dict[str, Any]:
     text = raw.decode("utf-8", errors="replace")
     sequence, header = parse_fasta(text)
     if len(sequence) < 20:
@@ -495,7 +503,23 @@ def analyze_sequence_bytes(raw: bytes, *, pitch_demo: bool = False) -> dict[str,
         raw = nonzero_counts.describe().round(4).to_dict()
         kmer_stats = {k: float(v) for k, v in raw.items()}
 
-    engines = run_quad_engines(sequence, meta)
+    client_warnings: list[str] = []
+
+    if use_integrated_real:
+        # Lazy import: avoids loading joblib/TF-heavy integrated stack unless requested.
+        try:
+            from integrated_pipeline_real import run_integrated_real_engines
+
+            engines = run_integrated_real_engines(sequence, header=header)
+        except Exception as e:  # noqa: BLE001
+            _log.exception("Integrated hackathon pipeline failed; falling back to quad-engine inference")
+            client_warnings.append(
+                f"Integrated pipeline failed ({e.__class__.__name__}): {e}. "
+                "Fell back to quad-engine. Check logs, GENEZAP_CV_ARTIFACT_ROOT, model files, and TensorFlow."
+            )
+            engines = run_quad_engines(sequence, meta)
+    else:
+        engines = run_quad_engines(sequence, meta)
     engines = normalize_engines_for_ui(engines)
 
     final_recommendation = build_final_recommendation(
@@ -504,6 +528,16 @@ def analyze_sequence_bytes(raw: bytes, *, pitch_demo: bool = False) -> dict[str,
         engines["v3"],
         engines["v4"],
     )
+
+    # Pitch demo replaces all engine JSON; it must not run together with integrated mode
+    # or it would silently overwrite hackathon artifact outputs.
+    pitch_effective = bool(pitch_demo) and not bool(use_integrated_real)
+    if pitch_demo and use_integrated_real:
+        client_warnings.append(
+            "Salmonella MDR pitch demo was not applied because it replaces engine payloads; "
+            "uncheck Hackathon integrated engine to use pitch demo, or leave pitch demo off for integrated."
+        )
+        _log.warning("pitch_demo suppressed: incompatible with use_integrated_real (preserving integrated engines)")
 
     payload: dict[str, Any] = {
         "status": "complete",
@@ -515,12 +549,20 @@ def analyze_sequence_bytes(raw: bytes, *, pitch_demo: bool = False) -> dict[str,
             "kmer_histogram_png_base64": plot_b64,
             "kmer_stats": kmer_stats,
             "engines": engines,
+            "client_warnings": client_warnings or None,
         },
         "final_recommendation": final_recommendation,
     }
-    if pitch_demo:
+    if pitch_effective:
         payload = apply_pitch_demo_profile(sequence, payload)
     else:
         payload = attach_susceptibility_profile(payload)
+    # Re-attach warnings after attach/apply mutates diagnostic_report shallowly
+    if client_warnings:
+        dr = dict(payload.get("diagnostic_report") or {})
+        merged = list(dr.get("client_warnings") or [])
+        merged.extend([w for w in client_warnings if w not in merged])
+        dr["client_warnings"] = merged or None
+        payload["diagnostic_report"] = dr
     payload = merge_v2_pharmacology_into_payload(payload, header)
     return payload

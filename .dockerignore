@@ -1,0 +1,18 @@
+.git
+.github
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.venv
+**/venv
+**/node_modules
+frontend/dist
+frontend/.vercel
+*.md
+!backend/**/*.md
+data/datasets/*
+!data/datasets/.gitkeep
+# Large local training corpora (keep model outputs in image via CV_HACKATHON_MODEL_DATASET selectively)
+**/CNN_CGR_DATASET*
+**/DATASET
+*.zip

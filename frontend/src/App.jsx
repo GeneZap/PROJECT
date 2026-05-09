@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion as M } from 'framer-motion'
 import { ChatAssistant } from './ChatAssistant.jsx'
+import { DatasetPoolPanel } from './components/dataset/DatasetPoolPanel.jsx'
+import { ANALYZE_URL } from './config.js'
+import { describeFetchFailure, readApiErrorDetail } from './utils/apiError.js'
 import {
   Activity,
   AlertCircle,
@@ -25,8 +28,6 @@ import {
   Tag,
   X,
 } from 'lucide-react'
-
-const ANALYZE_URL = 'http://localhost:8000/analyze'
 
 const CLR_DANGER = '#D97373'
 const CLR_SAFE = '#6EBF9A'
@@ -980,6 +981,8 @@ export default function App() {
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
   const [pitchDemo, setPitchDemo] = useState(true)
+  const [useIntegratedReal, setUseIntegratedReal] = useState(false)
+  const [intakeMode, setIntakeMode] = useState(() => /** @type {'single' | 'pool'} */ ('single'))
   const [reportTab, setReportTab] = useState('overview')
   const [intakeExpanded, setIntakeExpanded] = useState(false)
   const [theme, setTheme] = useState(() =>
@@ -1039,25 +1042,22 @@ export default function App() {
     setResult(null)
     const form = new FormData()
     form.append('file', file)
-    const q = pitchDemo ? '?pitch_demo=true' : ''
+    const params = new URLSearchParams()
+    if (pitchDemo) params.set('pitch_demo', 'true')
+    if (useIntegratedReal) params.set('use_integrated_real', 'true')
+    const q = params.toString() ? `?${params.toString()}` : ''
     try {
       const res = await fetch(`${ANALYZE_URL}${q}`, {
         method: 'POST',
         body: form,
       })
-      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const msg =
-          typeof data.detail === 'string'
-            ? data.detail
-            : Array.isArray(data.detail)
-              ? data.detail.map((d) => d.msg).join(' ')
-              : 'Analysis failed.'
-        throw new Error(msg)
+        throw new Error(await readApiErrorDetail(res))
       }
+      const data = await res.json()
       setResult(data)
     } catch (e) {
-      setError(e.message || 'Could not reach the API. Is the backend running on port 8000?')
+      setError(describeFetchFailure(e))
     } finally {
       setLoading(false)
     }
@@ -1172,14 +1172,62 @@ export default function App() {
             className="space-y-4"
           >
             {!result && (
-            <div className="flex items-end justify-between gap-4">
-              <h2 className="flex items-center gap-2.5 text-sm font-semibold tracking-tight gz-heading">
-                <Dna className="size-4 text-[var(--gz-cyan-ui)]" aria-hidden />
-                Specimen intake
-              </h2>
-              <span className="hidden text-xs font-medium text-[var(--gz-muted)] sm:inline">FASTA assembly</span>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex items-end justify-between gap-4">
+                <h2 className="flex items-center gap-2.5 text-sm font-semibold tracking-tight gz-heading">
+                  <Dna className="size-4 text-[var(--gz-cyan-ui)]" aria-hidden />
+                  Specimen intake
+                </h2>
+                <span className="hidden text-xs font-medium text-[var(--gz-muted)] sm:inline">FASTA assembly</span>
+              </div>
+              <div
+                className="inline-flex rounded-xl border border-[var(--gz-border)] bg-[var(--gz-field-bg)] p-1"
+                role="tablist"
+                aria-label="Intake mode"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={intakeMode === 'single'}
+                  onClick={() => setIntakeMode('single')}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    intakeMode === 'single'
+                      ? 'bg-[var(--gz-surface)] text-[var(--gz-heading)] shadow-sm ring-1 ring-[var(--gz-border)]'
+                      : 'text-[var(--gz-muted)] hover:text-[var(--gz-heading)]'
+                  }`}
+                >
+                  Single FASTA
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={intakeMode === 'pool'}
+                  onClick={() => setIntakeMode('pool')}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    intakeMode === 'pool'
+                      ? 'bg-[var(--gz-surface)] text-[var(--gz-heading)] shadow-sm ring-1 ring-[var(--gz-border)]'
+                      : 'text-[var(--gz-muted)] hover:text-[var(--gz-heading)]'
+                  }`}
+                >
+                  Dataset pool
+                </button>
+              </div>
             </div>
             )}
+            {intakeMode === 'pool' ? (
+              <DatasetPoolPanel
+                pitchDemo={pitchDemo}
+                useIntegratedReal={useIntegratedReal}
+                onAnalysisResult={(data, displayName) => {
+                  setResult(data)
+                  setFile({ name: displayName, size: 0 })
+                  setError(null)
+                }}
+                onError={setError}
+                onGlobalLoading={setLoading}
+              />
+            ) : (
+            <>
             <M.div
               role="button"
               tabIndex={0}
@@ -1246,6 +1294,8 @@ export default function App() {
               className="hidden"
               onChange={(e) => onFileChosen(e.target.files?.[0])}
             />
+            </>
+            )}
           </M.div>
 
           <M.aside
@@ -1263,13 +1313,35 @@ export default function App() {
                 <input
                   type="checkbox"
                   checked={pitchDemo}
-                  onChange={(e) => setPitchDemo(e.target.checked)}
+                  onChange={(e) => {
+                    const on = e.target.checked
+                    setPitchDemo(on)
+                    if (on) setUseIntegratedReal(false)
+                  }}
                   className="mt-0.5 size-4 rounded border-[var(--gz-border)] bg-[var(--gz-input-bg)] text-cyan-500 focus:ring-cyan-500/40"
                 />
                 <span>
                   <span className="text-xs font-semibold gz-heading">Salmonella MDR pitch profile</span>
                   <span className="mt-0.5 block text-[11px] leading-snug text-[var(--gz-muted)]">
-                    API returns fully populated resistant-strain JSON (real assembly metrics preserved).
+                    API replaces engine JSON with a demo MDR profile (mutually exclusive with integrated engine).
+                  </span>
+                </span>
+              </label>
+              <label className="mt-3 flex cursor-pointer items-start gap-4 rounded-2xl border border-[var(--gz-border)] bg-[var(--gz-surface)] p-4 text-left transition-colors hover:border-cyan-400/30">
+                <input
+                  type="checkbox"
+                  checked={useIntegratedReal}
+                  onChange={(e) => {
+                    const on = e.target.checked
+                    setUseIntegratedReal(on)
+                    if (on) setPitchDemo(false)
+                  }}
+                  className="mt-0.5 size-4 rounded border-[var(--gz-border)] bg-[var(--gz-input-bg)] text-cyan-500 focus:ring-cyan-500/40"
+                />
+                <span>
+                  <span className="text-xs font-semibold gz-heading">Hackathon integrated engine</span>
+                  <span className="mt-0.5 block text-[11px] leading-snug text-[var(--gz-muted)]">
+                    Loads CV_HACKATHON_MODEL_DATASET joblib/Keras artifacts (set GENEZAP_CV_ARTIFACT_ROOT on servers).
                   </span>
                 </span>
               </label>
@@ -1279,8 +1351,9 @@ export default function App() {
                 type="button"
                 whileHover={{ scale: loading ? 1 : 1.02 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
-                disabled={loading}
+                disabled={loading || intakeMode === 'pool'}
                 onClick={beginScan}
+                title={intakeMode === 'pool' ? 'Switch to Single FASTA to scan an ad-hoc upload, or use Run / batch in the dataset pool panel.' : undefined}
                 className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-cyan-600 via-cyan-500 to-teal-500 py-4 text-sm font-semibold text-white shadow-[0_12px_40px_-8px_rgba(59,219,233,0.45)] disabled:cursor-not-allowed disabled:opacity-55"
               >
                 <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
@@ -1290,7 +1363,7 @@ export default function App() {
                   ) : (
                     <Scan className="size-5" aria-hidden />
                   )}
-                  {loading ? 'Scanning…' : 'Begin scan'}
+                  {loading ? 'Scanning…' : intakeMode === 'pool' ? 'Use pool actions' : 'Begin scan'}
                 </span>
               </M.button>
             </div>
@@ -1342,6 +1415,21 @@ export default function App() {
                   </p>
                 </div>
               </div>
+
+              {Array.isArray(result?.diagnostic_report?.client_warnings) &&
+                result.diagnostic_report.client_warnings.length > 0 && (
+                  <div
+                    className="rounded-2xl border border-amber-500/40 bg-amber-500/[0.09] px-5 py-4 text-sm leading-relaxed text-amber-100 shadow-[0_12px_40px_-16px_rgba(245,158,11,0.25)]"
+                    role="status"
+                  >
+                    <p className="text-xs font-bold uppercase tracking-wider text-amber-200/95">Pipeline notice</p>
+                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-amber-50/95">
+                      {result.diagnostic_report.client_warnings.map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
               <div className="overflow-hidden rounded-2xl gz-glass-deep shadow-[0_40px_80px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex flex-col lg:min-h-[28rem] lg:flex-row">

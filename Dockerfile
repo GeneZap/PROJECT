@@ -1,0 +1,34 @@
+# GeneZap API — Render / Fly.io / generic container
+# Build from repository root:  docker build -t genezap-api .
+# Run:  docker run -p 8000:8000 -e GENEZAP_DATASETS_ROOT=/data/datasets -v genezap-data:/data/datasets genezap-api
+
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    TF_CPP_MIN_LOG_LEVEL=2 \
+    MALLOC_ARENA_MAX=2
+
+WORKDIR /app
+
+# Install backend dependencies first (layer cache).
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+
+# Application + hackathon model bundle (required for integrated + quad artifact paths).
+COPY backend /app/backend
+COPY CV_HACKATHON_MODEL_DATASET /app/CV_HACKATHON_MODEL_DATASET
+
+WORKDIR /app/backend
+
+# Writable volume default for dataset pools + batch jobs (override in orchestrator).
+RUN mkdir -p /data/datasets
+ENV GENEZAP_DATASETS_ROOT=/data/datasets \
+    GENEZAP_CV_ARTIFACT_ROOT=/app/CV_HACKATHON_MODEL_DATASET \
+    GENEZAP_ENV=production
+
+EXPOSE 8000
+
+# Render sets PORT; Fly.io uses 8080 internally — honor PORT first.
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]

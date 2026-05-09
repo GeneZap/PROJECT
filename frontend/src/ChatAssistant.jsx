@@ -24,7 +24,7 @@ function replyFor(text, ctx) {
   }
 
   if (/scan|upload|fasta|\.fna|\.fa|file|begin scan/.test(q)) {
-    return 'Choose a single FASTA assembly (.fna, .fasta, or .fa), then click **Begin scan**. The API must be running locally (default port 8000). After a successful run, the report scrolls into view and specimen intake collapses—expand it anytime to change files or re-scan.'
+    return 'Use **Single FASTA** to drop one assembly and click **Begin scan**, or switch to **Dataset pool** to create pools, upload many `.fna` files, optionally import from a server folder, then **Run** or **Batch analyze**. The API must be running (default port 8000; override with `VITE_API_BASE_URL`).'
   }
 
   if (/v1|profiler|species|identity(?!\s*vision)/.test(q)) {
@@ -48,7 +48,7 @@ function replyFor(text, ctx) {
   }
 
   if (/pitch|demo|salmonella|mdr/.test(q)) {
-    return '**Salmonella MDR pitch profile** (checkbox before scan) asks the API for a fully populated resistant-strain-style JSON while still using your real assembly metrics—ideal for judge demos.'
+    return '**Salmonella MDR pitch profile** swaps in a canned MDR engine story for demos. It is **mutually exclusive** with **Hackathon integrated engine** (integrated uses real artifact pickles; pitch would overwrite them). Turn integrated off to use pitch mode.'
   }
 
   if (/theme|dark|light|mode/.test(q)) {
@@ -56,7 +56,7 @@ function replyFor(text, ctx) {
   }
 
   if (/api|backend|8000|localhost|error|connect|failed/.test(q)) {
-    return 'The UI talks to `POST /analyze` on the backend (default `http://localhost:8000`). If you see connection errors, start the FastAPI server and check the port matches `ANALYZE_URL` in the frontend code.'
+    return 'The UI uses `src/config.js`: `POST /analyze` plus dataset APIs under `/datasets/*`. Default base is `http://localhost:8000`—set `VITE_API_BASE_URL` if your API differs. See `docs/DATASET_POOLS.md` for pool endpoints.'
   }
 
   if (/stewardship|resistant|alternative|contraindicated/.test(q)) {

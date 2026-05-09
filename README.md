@@ -1,283 +1,431 @@
 <div align="center">
 
-![GeneZap Header](https://capsule-render.vercel.app/api?type=waving&text=GeneZap&color=0:0B0F19,100:00F2FE&fontSize=55&fontColor=ffffff&height=200&animation=fadeIn&fontAlignY=38&desc=Next-Gen%20Multi-Modal%20DNA%20Analyzer&descAlignY=55&descSize=18)
+# GeneZap Clinical Console
 
-### Real-Time Bacterial Pathogen Identification & Antimicrobial Resistance (AMR) Profiling
+**Quad-engine bacterial genome analysis with optional hackathon artifact pipeline, dataset pools, and deployment-ready FastAPI + React.**
 
-**This repository:** `BV-BRC_Dataset`
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-Keras-FF6F00?style=flat&logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
 
-<br />
-
-[![Status](https://img.shields.io/badge/Status-Complete-10B981?style=for-the-badge)](https://github.com/)
-[![Hackathon](https://img.shields.io/badge/Project-Hackathon%20Demo-8B5CF6?style=for-the-badge)](https://github.com/)
-[![Tech](https://img.shields.io/badge/Stack-Python%20%7C%20React%20%7C%20CNN-00F2FE?style=for-the-badge)](https://github.com/)
-[![Offline](https://img.shields.io/badge/Mode-Fully%20Offline-10B981?style=for-the-badge&logo=shield)](https://github.com/)
-
-<!-- <br />
-
-<a href="https://YOUR-LIVE-SITE-URL.vercel.app" target="_blank">
-  <img src="https://img.shields.io/badge/🚀%20Live%20Demo-Click%20To%20Open%20App-00F2FE?style=for-the-badge&logo=vercel" alt="Live Demo" height="40" />
-</a>
-
-<br /> -->
-<br />
-
----
-
-**[🚀 Overview](#-overview)** &nbsp;•&nbsp; **[🎛️ The 4 Engines](#️-the-4-engines)** &nbsp;•&nbsp; **[🧬 Verified Test Data](#-verified-test-data)** &nbsp;•&nbsp; **[🛡️ Model Audit & Safety](#️-model-audit--safety)** &nbsp;•&nbsp; **[📊 System Design](#-system-design)** &nbsp;•&nbsp; **[💻 Quick Start](#-quick-start)**
-
----
-
-</div>
-
-## 🚀 Overview
-
-**GeneZap** is a high-fidelity, fully offline clinical decision support tool that processes raw genetic sequencer files (`.fasta` / `.fna`) to rapidly determine bacterial presence, antibiotic susceptibility, and critical genetic markers.
-
-By employing **four distinct localized AI engines**, the platform generates a safe, scannable recommendation matrix for clinicians **before empiric therapies are ordered** — with the entire pipeline running locally so patient genomic data never touches an external server.
-
-> [!IMPORTANT]
-> Uploading `.fna` files with headers containing **`Salmonella`** or **`Klebsiella`** will trigger custom multi-drug resistance visual profiles. Use the verified test files below to see this in action.
-
----
-
-## 🎛️ The 4 Engines
-
-Each sample is analyzed simultaneously via **4 isolated processing pipelines** whose results are cross-validated before any report is generated:
-
-| Engine | Modality | Output |
-| :--- | :---: | :--- |
-| **V1 — Genomic Profiler** | 📊 NLP / Text | Species ID via K-mer indexing with **>97% confidence** |
-| **V2 — Pharmacology** | 💊 Machine Learning | Resistance/susceptibility scores across **51 antibiotics** |
-| **V3 — Vision Analyzer** | 🖼️ Computer Vision | CGR image + CNN anomaly detection at **96.5% accuracy** |
-| **V4 — Gene Discovery** | 🔬 Database Alignment | Hard validation against the **CARD database** (e.g., `NDM-1`, `blaCTX-M-15`) |
-
-**Pipeline execution order:**
-
-1. `.fna` file ingested by the **Sequence Parser**
-2. **V1** predicts bacterial species from raw k-mer frequency vectors
-3. **V2** runs a resistance regression model across the full antibiotic panel
-4. **V3** renders a Chaos Game Representation (CGR) image; the CNN classifies it
-5. **V4** performs BLAST-style alignment against the local CARD resistance gene database
-6. Results are **cross-validated** — species match between V1 & V3 is confirmed, genes flagged by V4 are verified, and a unified JSON report is assembled
-
----
-
-## 🧬 Verified Test Data
-
-The following real whole-genome shotgun sequences from NCBI were used for pipeline validation:
-
-### `28901_24567.fna` — *Salmonella enterica* strain **B154_2018**
-
-| Property | Value |
-| :--- | :--- |
-| Accession prefix | `JAMCOE010000*` |
-| Assembly type | Whole Genome Shotgun (Scaffolds) |
-| Total scaffolds | **22** |
-| Total base pairs | **4,762,488 bp** |
-| GC content | **52.09%** |
-| Organism | *Salmonella enterica* B154_2018 |
-| NCBI ID | `28901.24567` |
-
-<details>
-<summary>📋 Sample sequence header</summary>
-
-```
->accn|JAMCOE010000002   Salmonella enterica strain B154_2018 Scaffold2,
-whole genome shotgun sequence.   [Salmonella enterica B154_2018 | 28901.24567]
-```
-
-</details>
-
----
-
-### `28901_24568.fna` — *Salmonella enterica* strain **JLS85**
-
-| Property | Value |
-| :--- | :--- |
-| Accession prefix | `JAMCNU010000*` |
-| Assembly type | Whole Genome Shotgun (Contigs) |
-| Total contigs | **42** |
-| Total base pairs | **5,077,870 bp** |
-| GC content | **51.86%** |
-| Organism | *Salmonella enterica* JLS85 |
-| NCBI ID | `28901.24568` |
-
-<details>
-<summary>📋 Sample sequence header</summary>
-
-```
->accn|JAMCNU010000026   Salmonella enterica strain JLS85 Contig26,
-whole genome shotgun sequence.   [Salmonella enterica JLS85 | 28901.24568]
-```
-
-</details>
-
----
-
-### Expected Pipeline Output for These Files
-
-Both files will trigger the **Salmonella-specific AMR visual profile**. A correct pipeline run should produce:
-
-```
-=== INTEGRATED AMR PIPELINE REPORT ===
-Sample File    : 28901_24567.fna  /  28901_24568.fna
-V1 Bacteria    : Salmonella enterica
-V3 Bacteria    : Salmonella enterica
-Bacteria Match : ✅ True
-V3 Gene        : blaCTX-M-15
-V4 CARD Match  : ✅ True
-Recommended    : ciprofloxacin, cefotaxime
-```
-
----
-
-## 🛡️ Model Audit & Safety
-
-GeneZap is designed for clinical safety. The following practices are enforced across all four model engines:
-
-| Practice | Details |
-| :--- | :--- |
-| **Stratified splits** | Train/test sets are balanced across species and resistance classes |
-| **Class imbalance handling** | SMOTE oversampling + class weights applied to V2 regression models |
-| **Evaluation metrics** | F1-Score, Precision, Recall, Sensitivity, False Negative Rate (FNR), Confusion Matrix |
-| **Threshold tuning** | Decision thresholds adjusted per antibiotic to minimize clinically dangerous FNR |
-| **Per-class reporting** | Each antibiotic and gene class has its own performance breakdown |
-| **Audit log** | Full findings in `AUDIT_REPORT_CRITICAL_FINDINGS.txt` |
-| **Offline enforcement** | No network call is permitted during inference; pipeline fails closed on connectivity |
-
-> [!WARNING]
-> GeneZap is a **decision support tool**, not a replacement for clinical judgment. All outputs must be reviewed by a qualified clinician before therapeutic decisions are made.
-
----
-
-## 🛠️ Tech Stack
-
-<div align="center">
-
-![Python](https://img.shields.io/badge/Python-0B0F19?style=for-the-badge&logo=python&logoColor=00F2FE)
-![FastAPI](https://img.shields.io/badge/FastAPI-0B0F19?style=for-the-badge&logo=fastapi&logoColor=10B981)
-![React](https://img.shields.io/badge/React-0B0F19?style=for-the-badge&logo=react&logoColor=00F2FE)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-0B0F19?style=for-the-badge&logo=tailwind-css&logoColor=10B981)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-0B0F19?style=for-the-badge&logo=tensorflow&logoColor=FF6F00)
-![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-0B0F19?style=for-the-badge&logo=scikit-learn&logoColor=F7931E)
+[Features](#-key-features) · [Architecture](#-system-architecture) · [Quick start](#-installation--local-setup) · [Dataset pools](#-dataset-pool-system) · [API](#-api-reference) · [Deploy](#-deployment) · [Roadmap](#-future-roadmap)
 
 </div>
 
 ---
 
-## 📊 System Design
+## What this is
 
-The pipeline is entirely offline-capable, keeping patient genetic data secure and never touching an external server.
+**GeneZap** is a **research and hackathon-grade** workspace for **antimicrobial resistance (AMR)** exploration from **bacterial DNA (FASTA)**. Upload an assembly (or manage a **pool** of genomes), run **four complementary inference channels** (V1–V4), and review a structured JSON report in a **React clinical console**.
+
+**Problem space:** AMR is multi-modal—taxonomy, drug panels, sequence-derived imagery, and curated resistance genes all carry signal. This repo **orchestrates** those signals instead of collapsing them into a single black box.
+
+**What makes the architecture distinctive:**
+
+| Aspect | Approach |
+|--------|----------|
+| **Dual inference backends** | Default **quad-engine** (`run_quad_engines`) with resilient fallbacks; optional **integrated hackathon** path that loads **frozen joblib/Keras artifacts** from `CV_HACKATHON_MODEL_DATASET`. |
+| **Single orchestration API** | `analyze_sequence_bytes()` in `backend/analysis.py` normalizes outputs and builds stewardship-style recommendations—same contract for direct upload and pool-backed analyze. |
+| **Dataset pools** | Filesystem-backed pools + JSON manifests + async **batch jobs** (see `backend/dataset_pools/`), designed to migrate later to **object storage + Postgres** without rewriting the UI contract. |
+| **Deployment split** | **Vite static frontend** (Vercel-friendly) + **containerized FastAPI** (Dockerfile at repo root) with env-driven CORS, upload limits, and readiness probes. |
+
+> **Disclaimer:** This is a **demonstration / research** stack—not a regulated medical device. Outputs require laboratory confirmation and clinical judgment.
+
+---
+
+## Screenshots & demo
+
+> Add your own captures under `docs/images/` and link them here for portfolio polish.
+
+| Placeholder | Suggested capture |
+|-------------|-------------------|
+| **Clinical console** | Full-width `App.jsx` intake + report after a successful scan. |
+| **Dataset pool** | “Dataset pool” tab: pool selector, file table, multi-upload. |
+| **Batch analysis** | Batch job status + “Open result” chips after completion. |
+| **Engine tabs** | V1 & V3 / V2 pharmacology / V4 CARD tabs showing `diagnostic_report.engines`. |
+
+```markdown
+<!-- Example once you have assets:
+![Console](docs/images/console-overview.png)
+-->
+```
+
+---
+
+## Key features
+
+- **Quad-engine AMR inference** — V1 profiler, V2 pharmacology, V3 CGR/vision channel, V4 CARD-aligned discovery (`backend/quad_engine_inference.py`).
+- **Integrated hackathon engine** — Same V1→V4 story using **artifact pickles + Keras** from `CV_HACKATHON_MODEL_DATASET` (`backend/integrated_pipeline_real.py`); configurable via **`GENEZAP_CV_ARTIFACT_ROOT`**.
+- **FASTA upload & analysis** — `POST /analyze` with optional `pitch_demo` (demo JSON) and `use_integrated_real` (**mutually exclusive** with pitch in `analysis.py`).
+- **Dataset pool management** — Create pools, multi-file upload, optional guarded **server path import** (dev only), manifest **snapshots** (`backend/dataset_pools/`).
+- **Batch analysis** — `POST /datasets/pools/{id}/batch-jobs` + polling; results written under `GENEZAP_DATASETS_ROOT/jobs/`.
+- **Multi-engine orchestration** — `normalize_engines_for_ui` + `build_final_recommendation` in `backend/analysis.py`.
+- **TensorFlow + scikit-learn** — Keras `.h5` (V3 integrated path), `joblib` models (V1/V2), optional TF skip for smoke tests (`GENEZAP_SKIP_TENSORFLOW`).
+- **CARD-based resistance detection** — Local FASTA alignment path in quad + integrated V4 branches.
+- **React + FastAPI** — Vite 8, React 19, Tailwind v4, Framer Motion; FastAPI + Pydantic response models (`backend/main.py`).
+- **Deployment-ready** — Root `Dockerfile`, `.dockerignore`, `docs/DEPLOYMENT.md`, `backend/env.example`, `frontend/vercel.json`, `frontend/src/config.js` (`VITE_API_BASE_URL`).
+- **Operational hooks** — `/health`, `/health/live`, `/ready`, `client_warnings` in API responses for UI notices.
+- **Roadmap-friendly settings** — Central `backend/genezap_settings.py` for limits, CORS, and environment profile.
+
+---
+
+## System architecture
+
+### High-level flow
+
+```text
+Frontend (Vite/React)  →  HTTPS API (FastAPI)
+                              ↓
+                    analyze_sequence_bytes()
+                              ↓
+              ┌───────────────┴────────────────┐
+              │ use_integrated_real?         │
+         yes  │                                │ no
+              ↓                                ↓
+   run_integrated_real_engines()      run_quad_engines()
+   (CV artifact tree + TF/Keras)    (multi-root discovery + mocks on failure)
+              └───────────────┬────────────────┘
+                              ↓
+                 normalize_engines_for_ui()
+                              ↓
+                build_final_recommendation()
+                              ↓
+           merge_v2_pharmacology_into_payload()
+                              ↓
+                     JSON → UI / pool batch files
+```
+
+**Dataset pool side path:** Browser → `POST /datasets/pools/...` (CRUD, upload) → stored FASTA on disk → `POST .../analyze` or batch job → **`analyze_sequence_bytes(bytes)`** (same core as `/analyze`).
+
+### Mermaid — request lifecycle (single upload)
 
 ```mermaid
-graph TD
-    A["📄 .fna / .fasta Input File"] --> B["🔍 Sequence Parser"]
-    B --> C["⚙️ Orchestration Engine"]
-    C --> D["V1: Taxonomy Profiler\nK-mer NLP · >97% confidence"]
-    C --> E["V2: Pharmacology Baseline\n51-antibiotic ML panel"]
-    C --> F["V3: CGR Image Generator + CNN\nVisual anomaly · 96.5% accuracy"]
-    C --> G["V4: CARD Database Aligner\nNDM-1 · blaCTX-M-15 · etc."]
-    D --> H["📦 Cross-Validation Layer\nSpecies match · Gene confirm"]
-    E --> H
-    F --> H
-    G --> H
-    H --> I["🖥️ React Glassmorphic Dashboard\nAMR Report · Antibiotic Panel"]
+sequenceDiagram
+  participant UI as React App
+  participant API as FastAPI
+  participant A as analysis.analyze_sequence_bytes
+  participant Q as quad_engine_inference
+  participant I as integrated_pipeline_real
 
-    style A fill:#0B0F19,color:#00F2FE,stroke:#00F2FE
-    style C fill:#0B0F19,color:#8B5CF6,stroke:#8B5CF6
-    style H fill:#0B0F19,color:#F59E0B,stroke:#F59E0B
-    style I fill:#0B0F19,color:#10B981,stroke:#10B981
+  UI->>API: POST /analyze (multipart FASTA)
+  API->>A: analyze_sequence_bytes(raw, flags)
+  alt use_integrated_real
+    A->>I: run_integrated_real_engines()
+    I-->>A: engines v1..v4
+  else default
+    A->>Q: run_quad_engines()
+    Q-->>A: engines v1..v4
+  end
+  A->>A: normalize + recommend + merge
+  A-->>API: payload dict
+  API-->>UI: AnalyzeResponse JSON
 ```
+
+### Mermaid — repository layout (logical)
+
+```mermaid
+flowchart LR
+  subgraph client [Frontend]
+    V[Vite + React]
+  end
+  subgraph api [Backend]
+    M[main.py]
+    AN[analysis.py]
+    DS[dataset_pools]
+  end
+  subgraph data [Data on host]
+    CV[CV_HACKATHON_MODEL_DATASET]
+    PO[data/datasets pools]
+  end
+  V -->|VITE_API_BASE_URL| M
+  M --> AN
+  M --> DS
+  AN --> CV
+  DS --> PO
+```
+
+### Engine modes (summary)
+
+| Mode | Trigger | Implementation |
+|------|---------|----------------|
+| **Quad-engine** | Default (`use_integrated_real=false`) | `run_quad_engines()` — searches multiple artifact roots, **falls back to mock engines** if artifacts or TF fail (never raises from the runner). |
+| **Integrated** | `use_integrated_real=true` | Lazy-imported `run_integrated_real_engines()` — expects **known paths** under `GENEZAP_CV_ARTIFACT_ROOT` or repo `CV_HACKATHON_MODEL_DATASET/`; on failure **`analysis.py` falls back to quad** and surfaces **`client_warnings`**. |
+| **Pitch demo** | `pitch_demo=true` **and** integrated **off** | `apply_pitch_demo_profile()` replaces engine JSON with a **fixed Salmonella MDR narrative** while keeping real assembly metrics from the upload. |
 
 ---
 
-## 📁 Project Structure
+## Tech stack
 
-```
-genezap/
-├── INTEGRATED_AMR_PIPELINE_REAL.py     ← Main offline pipeline (production)
-├── INTEGRATED_AMR_PIPELINE.py          ← Template / logic reference
-├── AUDIT_REPORT_CRITICAL_FINDINGS.txt  ← Full model audit log
-├── bacterial_dna/
-│   ├── 28901_24567.fna                 ← S. enterica B154_2018 (22 scaffolds, 4.76 Mbp)
-│   └── 28901_24568.fna                 ← S. enterica JLS85    (42 contigs,   5.08 Mbp)
-├── V1_Model_Output/
-├── V2_Model_Output/
-├── V3_Model_Output/
-├── V4_GENE_DETECTION/
-├── V3_CNN_MODEL_TRAINING/
+| Layer | Technologies |
+|--------|----------------|
+| **Frontend** | React 19, Vite 8, Tailwind CSS v4 (`@tailwindcss/vite`), Framer Motion, Lucide icons |
+| **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic v2, Starlette middleware |
+| **ML / numerics** | TensorFlow/Keras (V3 paths), scikit-learn artifacts via `joblib`, NumPy, Pandas, Matplotlib, Pillow |
+| **Reference data** | CARD-derived FASTA and gene-detection helpers under `CV_HACKATHON_MODEL_DATASET` / `backend/V4_GENE_DETECTION` |
+| **Storage (current)** | Filesystem: `data/datasets/` for pools + jobs (`GENEZAP_DATASETS_ROOT`); model bundle path (`GENEZAP_CV_ARTIFACT_ROOT`) |
+| **Deployment** | Docker (repo root), optional Render/Fly; static frontend on Vercel (see `docs/DEPLOYMENT.md`) |
+| **Planned** | S3/R2 blobs, PostgreSQL metadata, Redis + Celery workers, dedicated inference service |
+
+---
+
+## Folder structure
+
+> Trimmed to the **contract surfaces** collaborators touch most often. Training notebooks and large corpora may live under `CV_HACKATHON_MODEL_DATASET/` (partially gitignored—see `.gitignore`).
+
+```text
+BV-BRC_Dataset/
+├── Dockerfile                 # API image: backend + CV_HACKATHON_MODEL_DATASET + uvicorn
+├── .dockerignore
+├── README.md                  # You are here
+├── docs/
+│   ├── DEPLOYMENT.md          # Vercel + Render/Fly + env matrix
+│   └── DATASET_POOLS.md     # Pool API, manifests, import semantics
+├── data/datasets/             # Default GENEZAP_DATASETS_ROOT (pools + jobs; gitignored contents)
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx            # Main clinical UI (single FASTA + dataset pool tab)
+│   │   ├── config.js          # VITE_API_BASE_URL → API_BASE
+│   │   ├── services/datasetsApi.js
+│   │   ├── components/dataset/DatasetPoolPanel.jsx
+│   │   └── utils/apiError.js
+│   ├── vercel.json            # SPA rewrites for Vercel
+│   ├── vite.config.js
+│   └── package.json
 ├── backend/
-│   └── main.py
-└── frontend/
-    └── src/
-        ├── components/
-        └── App.jsx
+│   ├── main.py                # FastAPI app, CORS, /analyze, health/ready
+│   ├── analysis.py            # Orchestration: parse FASTA → engines → payload
+│   ├── quad_engine_inference.py
+│   ├── integrated_pipeline_real.py
+│   ├── genezap_settings.py    # Central deployment env
+│   ├── dataset_pools/         # Pools router, repository, batch jobs, validation
+│   ├── middleware/max_body.py
+│   ├── env.example
+│   └── requirements.txt
+└── CV_HACKATHON_MODEL_DATASET/
+    ├── V1_Model_Output/       # Integrated V1 pickles (when committed / present)
+    ├── V2_Model_Output/
+    ├── V3_Model_Output/
+    ├── V4_GENE_DETECTION/
+    ├── MAIN_MODEL/CARD_DB.fasta
+    └── INTEGRATED_AMR_PIPELINE_REAL.py   # CLI reference (API uses integrated_pipeline_real.py)
 ```
 
 ---
 
-## 💻 Quick Start
+## Installation & local setup
 
 ### Prerequisites
 
-- Python 3.10+
-- Node.js 18+
-- Git
-- All `.pkl` and `.h5` model files present in their respective `V*_Model_Output/` folders
+- **Python 3.11+** (recommended for TensorFlow wheels)
+- **Node.js 20+** (for Vite 8)
+- **Git LFS or local copies** of large model files where `.gitignore` excludes them (see repo `.gitignore` for `*.pkl` / `*.h5` rules)
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/genezap.git
-cd genezap
-```
-
-### 2. Backend Setup
+### Backend
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### 3. Frontend Setup
+- **API:** `http://127.0.0.1:8000`
+- **Liveness:** `GET /health` or `GET /health/live`
+- **Readiness (writable data dir):** `GET /ready`
+
+Copy `backend/env.example` to `.env` and load with your tooling if desired (variables are also read from the process environment).
+
+### Frontend
 
 ```bash
 cd frontend
 npm install
+# Optional: echo VITE_API_BASE_URL=http://127.0.0.1:8000 > .env.local
 npm run dev
 ```
 
-### 4. Open the App & Test
+- **Dev server:** default Vite port **5173**
+- **Production build:** `npm run build` → `frontend/dist/`
 
-Navigate to [http://localhost:5173](http://localhost:5173) and upload one of the verified test files from `bacterial_dna/`:
+### Docker (full API + CV bundle)
 
-| File | Organism | Sequences | Size |
-| :--- | :--- | :---: | :--- |
-| `28901_24567.fna` | *S. enterica* B154_2018 | 22 scaffolds | 4.76 Mbp |
-| `28901_24568.fna` | *S. enterica* JLS85 | 42 contigs | 5.08 Mbp |
+From **repository root**:
+
+```bash
+docker build -t genezap-api .
+docker run --rm -p 8000:8000 -e GENEZAP_CORS_ORIGINS=http://localhost:5173 genezap-api
+```
+
+Mount a volume for persistent pools:
+
+```bash
+docker run --rm -p 8000:8000 -v genezap-data:/data/datasets -e GENEZAP_DATASETS_ROOT=/data/datasets genezap-api
+```
+
+### Troubleshooting
+
+| Symptom | Check |
+|---------|--------|
+| Integrated mode errors | `GENEZAP_CV_ARTIFACT_ROOT` or sibling `CV_HACKATHON_MODEL_DATASET/`; `client_warnings` in JSON; server logs. |
+| TF DLL / import errors | `GENEZAP_SKIP_TENSORFLOW=1` (quad path degrades V3; integrated mode will error or fallback with warning). |
+| CORS in browser | `GENEZAP_CORS_ORIGINS` includes your Vite/Vercel origin; HTTPS↔HTTP mixed content. |
+| Pitch “overwrites” integrated | **Mutually exclusive** in UI and API—disable pitch demo when using integrated. |
 
 ---
 
-## 🏗️ Training & Testing Workflow
+## Dataset pool system
 
-1. Locate training scripts inside `V2_Model/` and `V3_CNN_MODEL_TRAINING/`
-2. Run with **stratified splits** and **class weights enabled**
-3. Evaluate with all metrics — not just accuracy: F1, Precision, Recall, FNR, Sensitivity
-4. Adjust decision thresholds to minimize clinically critical False Negatives
-5. Test on both balanced and imbalanced sets
-6. Refer to `AUDIT_REPORT_CRITICAL_FINDINGS.txt` for documented findings and known edge cases
+- **Storage:** Each pool is a UUID directory under `pools/<pool_id>/` with `pool_manifest.json` and `files/` (`backend/dataset_pools/repository.py`). Jobs live under `jobs/<job_id>/`.
+- **Import:** Multi-part **`files`** field on `POST /datasets/pools/{id}/files`, or **server path import** when `GENEZAP_ALLOW_DATASET_PATH_IMPORT=1` and **not** `GENEZAP_ENV=production` (`import-path` route).
+- **Batch:** `POST .../batch-jobs` schedules `BackgroundTasks` to run `analyze_sequence_bytes` per file; poll `GET /datasets/batch-jobs/{job_id}`; fetch `GET .../results/{file_id}`.
+- **Snapshots:** `POST .../snapshot` bumps `manifest_version` and writes `snapshots/vN.json`.
+- **Validation:** Extension checks, size caps, basic FASTA sniffing (`dataset_pools/validation.py`); limits from `genezap_settings.py`.
+
+**Why filesystem first:** zero extra services for hackathon/research demos; **upgrade path** is env-indirection today (`GENEZAP_DATASETS_ROOT`) → object storage + DB tomorrow. See `docs/DATASET_POOLS.md`.
 
 ---
 
+## Inference engines
 
-<div align="center">
+| Engine | Role (quad path) | Integrated path notes |
+|--------|------------------|------------------------|
+| **V1** | Species / profiler-style payload from k-mers + artifacts when present | Loads `bacterial_id_model.pkl` + label encoder from CV tree |
+| **V2** | Pharmacology / drug panel from artifacts or heuristics + mocks | Multi-drug loop over `v2_feature_columns_FIXED.pkl` + multiclass model |
+| **V3** | CGR + CNN or fallback imagery | Keras `v3_vision_model.h5` + CGR PNG round-trip |
+| **V4** | CARD / discovery hits | `V4_GENE_DET` + `CARD_DB.fasta` when available |
 
-Made with ❤️ for the Hackathon &nbsp;|&nbsp; **GeneZap** — Genomics at the Speed of Care
+**Orchestration:** `analysis.py` chooses integrated vs quad, normalizes UI contract, builds `final_recommendation`, optionally attaches `susceptibility_profile`, merges **`v2_pharmacology_table`** metadata for the dashboard.
 
-*Maintained April 2026*
+**Fallback logic:** Quad runner catches per-engine failures and substitutes mocks so the API rarely hard-fails; integrated path **raises** on missing artifacts/TF and is **caught** in `analyze_sequence_bytes` to **fall back to quad** with explicit warnings.
 
-</div>
+---
+
+## Deployment
+
+Full matrix: **`docs/DEPLOYMENT.md`**.
+
+| Target | Notes |
+|--------|--------|
+| **Frontend (Vercel)** | Project root `frontend/`; set **`VITE_API_BASE_URL`** to your HTTPS API; `vercel.json` SPA rewrite included. |
+| **Backend (Render / Fly.io)** | Build from root `Dockerfile`; set `GENEZAP_ENV`, `GENEZAP_CORS_ORIGINS`, `GENEZAP_DATASETS_ROOT`, optional `GENEZAP_CV_ARTIFACT_ROOT`. |
+| **Free tier** | Expect **cold starts**, **RAM pressure** with TensorFlow, **ephemeral disks** without volumes, **HTTP timeouts** on very large assemblies or long batches. |
+
+---
+
+## Current limitations
+
+- **Not a medical device** — demo, research, and portfolio use only.
+- **Quad-engine mocks** — Missing artifacts yield **simulated** engine JSON; operators must read `mode` fields in payloads.
+- **Batch jobs** — `BackgroundTasks` are **single-process**; not durable across replicas without a queue.
+- **Pitch vs integrated** — Pitch demo **replaces** engine JSON; the product enforces **mutual exclusion** to avoid silent overwrites.
+- **Large genomes** — Memory and wall-clock scale with sequence length and V2 panel size.
+
+---
+
+## Future roadmap
+
+- **PostgreSQL** — Pool metadata, ACLs, audit trails, job state.
+- **S3 / Cloudflare R2** — FASTA blobs + batch result objects; presigned uploads from the browser.
+- **Redis + Celery** (or managed queue) — Durable batch and rate limiting.
+- **Inference workers** — Separate TF-serving or Triton for GPU and autoscaling API.
+- **Plugin / registry pattern** — Versioned engine registration instead of hard-coded `v1`–`v4` keys only.
+- **MLOps** — Model registry, canary deploys, structured tracing (OpenTelemetry).
+
+---
+
+## API reference
+
+Base URL: your deployed API, e.g. `https://api.example.com`.
+
+### Core analysis
+
+`POST /analyze` — multipart form field **`file`** (`.fna`, `.fasta`, `.fa`).
+
+| Query param | Default | Description |
+|-------------|---------|-------------|
+| `pitch_demo` | `false` | Salmonella MDR **demo** engine JSON (only if integrated is **off**). |
+| `use_integrated_real` | `false` | Use **CV hackathon artifact** pipeline; incompatible with `pitch_demo`. |
+
+**Example:**
+
+```bash
+curl -sS -X POST "http://127.0.0.1:8000/analyze?use_integrated_real=true" \
+  -F "file=@sample.fna"
+```
+
+**Response highlights:** `diagnostic_report.engines` (v1–v4), `final_recommendation`, optional `susceptibility_profile`, optional `diagnostic_report.client_warnings` (e.g. integrated fallback or pitch suppression notice).
+
+### Health
+
+| Route | Purpose |
+|-------|---------|
+| `GET /health` | Simple OK |
+| `GET /health/live` | Process up |
+| `GET /ready` | Writable `GENEZAP_DATASETS_ROOT` (503 if not) |
+
+### Dataset pools (`/datasets`)
+
+See **`docs/DATASET_POOLS.md`** for the full table. Short list:
+
+- `POST /datasets/pools` — create pool  
+- `GET /datasets/pools` — list  
+- `GET /datasets/pools/{pool_id}` — detail + files  
+- `POST /datasets/pools/{pool_id}/files` — multipart **`files`** (repeat field per FASTA)  
+- `POST /datasets/pools/{pool_id}/files/{file_id}/analyze` — same inference core as `/analyze`  
+- `POST /datasets/pools/{pool_id}/batch-jobs` — async batch (`file_ids` in JSON body)  
+- `GET /datasets/batch-jobs/{job_id}` — status  
+- `GET /datasets/batch-jobs/{job_id}/results/{file_id}` — one result JSON  
+- `GET /datasets/config/hints` — operator-facing limits (non-secret)
+
+<details>
+<summary>Example: create pool + upload</summary>
+
+```bash
+POOL=$(curl -sS -X POST http://127.0.0.1:8000/datasets/pools \
+  -H "Content-Type: application/json" \
+  -d '{"name":"lab-batch-01","description":"BV-BRC subset"}' | jq -r .pool_id)
+
+curl -sS -X POST "http://127.0.0.1:8000/datasets/pools/$POOL/files" \
+  -F "files=@genome1.fna" -F "files=@genome2.fna"
+```
+
+</details>
+
+---
+
+## Contributing
+
+1. **Scope** — Open an issue or short design note before large refactors; prefer incremental PRs.
+2. **Inference** — Do not remove mock fallbacks in `run_quad_engines` without a migration plan for demos; integrated path changes must keep **`analyze_sequence_bytes`** contract stable.
+3. **Frontend** — Match existing Tailwind / motion patterns in `App.jsx`; centralize API calls via `src/config.js` and `services/datasetsApi.js`.
+4. **Datasets / models** — Never commit secrets or patient-identifiable data; respect `.gitignore` for large binaries.
+5. **Style** — Run `npm run lint` in `frontend/`; format Python consistently with the surrounding module.
+
+---
+
+## License & credits
+
+- **License:** Add a root `LICENSE` file (e.g. MIT, Apache-2.0, or research-only terms) and reference it here.
+- **Third-party:** CARD (McMaster University) and BV-BRC / NCBI-style data sources should be cited in publications or derivative work per their respective licenses.
+- **Authors:** Replace this line with maintainer names, lab affiliation, or hackathon team credit.
+
+---
+
+## Appendix — key environment variables
+
+| Variable | Role |
+|----------|------|
+| `GENEZAP_ENV` | `production` / `prod` / `staging` — tightens defaults (e.g. disables path import). |
+| `GENEZAP_CORS_ORIGINS` | Comma-separated browser origins for CORS. |
+| `GENEZAP_DATASETS_ROOT` | Writable root for pools + batch jobs. |
+| `GENEZAP_CV_ARTIFACT_ROOT` | Root of `CV_HACKATHON_MODEL_DATASET`-style tree for integrated mode. |
+| `GENEZAP_MAX_UPLOAD_MB` | Request body / analyze size budget. |
+| `GENEZAP_MAX_BATCH_FILES` | Max files per batch job. |
+| `GENEZAP_SKIP_TENSORFLOW` | Skip TF import paths where supported (integrated V3 requires TF). |
+| `VITE_API_BASE_URL` | **Frontend build-time** API origin (Vercel / CI). |
+
+Full template: **`backend/env.example`**.
