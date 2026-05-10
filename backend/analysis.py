@@ -505,7 +505,10 @@ def analyze_sequence_bytes(
 
     client_warnings: list[str] = []
 
-    if use_integrated_real:
+    # TEMPORARY: Force quad-engine to get backend responsive while we debug model loading
+    _use_real = False  # use_integrated_real  # DISABLED TEMPORARILY
+    
+    if _use_real:
         # Lazy import: avoids loading joblib/TF-heavy integrated stack unless requested.
         try:
             from integrated_pipeline_real import run_integrated_real_engines
