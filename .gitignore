@@ -21,3 +21,5 @@ backend/V3_CNN MODEL TRAINING/V3_Model_Output/v3_vision_model.h5
 # Managed FASTA pools + batch jobs (local only; use GENEZAP_DATASETS_ROOT to relocate)
 data/datasets/*
 !data/datasets/.gitkeep
+!data/datasets/pools/default-public-pool/
+!data/datasets/pools/default-public-pool/**
