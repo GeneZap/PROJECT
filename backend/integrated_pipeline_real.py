@@ -147,6 +147,14 @@ def run_integrated_real_engines(
 
     v1_model = joblib.load(v1_dir / "bacterial_id_model.pkl")
     le_id = joblib.load(v1_dir / "label_encoder_id.pkl")
+    
+    # Load V1 feature columns from pickle file (models from training may not have feature_names_in_)
+    v1_feat_file = v1_dir / "v1_feature_columns.pkl"
+    if v1_feat_file.is_file():
+        v1_feat = joblib.load(v1_feat_file)
+    else:
+        # Fallback: try to get from model object (sklearn >= 0.24 may have this)
+        v1_feat = list(getattr(v1_model, "feature_names_in_", []))
 
     v2_model = joblib.load(v2_dir / "v2_multi_input_model_FIXED.pkl")
     v2_features = joblib.load(v2_dir / "v2_feature_columns_FIXED.pkl")
@@ -154,12 +162,18 @@ def run_integrated_real_engines(
     v3_model = _load_tf_model(v3_dir / "v3_vision_model.h5")
 
     # --- V1 ---
-    v1_feat = list(getattr(v1_model, "feature_names_in_", []))
-    k_len = len(v1_feat[0]) if v1_feat else 4
+    if not v1_feat:
+        raise ValueError(
+            "V1 model feature names not found. "
+            "Ensure v1_feature_columns.pkl exists in V1_Model_Output directory."
+        )
+    
+    k_len = len(v1_feat[0]) if v1_feat else 6
     kmers = Counter(sequence[i : i + k_len] for i in range(max(0, len(sequence) - k_len + 1)))
-    test_row_v1 = [kmers.get(name, 0) for name in v1_feat] if v1_feat else [0]
+    test_row_v1 = [kmers.get(name, 0) for name in v1_feat]
+    
     v1_species = le_id.inverse_transform(
-        v1_model.predict(pd.DataFrame([test_row_v1], columns=v1_feat if v1_feat else None))
+        v1_model.predict(pd.DataFrame([test_row_v1], columns=v1_feat))
     )[0]
 
     v1_out = {
