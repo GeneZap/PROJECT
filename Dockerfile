@@ -16,6 +16,9 @@ WORKDIR /app
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
+# Install curl for GitHub model download script
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # Application + hackathon model bundle (required for integrated + quad artifact paths).
 COPY backend /app/backend
 COPY CV_HACKATHON_MODEL_DATASET /app/CV_HACKATHON_MODEL_DATASET
