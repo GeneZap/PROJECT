@@ -28,7 +28,10 @@ RELEASE_URL="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}"
 download_model() {
     local filename=$1
     local destination=$2
-    local url="${RELEASE_URL}/${filename}"
+    # GitHub Release stores files flat (no folder structure in URL)
+    # Extract just the filename from the path
+    local basename=$(basename "$filename")
+    local url="${RELEASE_URL}/${basename}"
     
     if [ -f "$destination" ]; then
         echo "✅ $filename already exists, skipping download"
