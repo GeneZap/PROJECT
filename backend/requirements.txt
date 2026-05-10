@@ -6,3 +6,4 @@ joblib
 pandas
 matplotlib
 pillow
+scikit-learn
