@@ -3,11 +3,16 @@
 The original `CV_HACKATHON_MODEL_DATASET/INTEGRATED_AMR_PIPELINE_REAL.py` is an
 interactive CLI script (uses `input()` + prints). The FastAPI backend needs a
 callable function that returns structured JSON instead.
+
+NOTE: Models are LAZILY LOADED to minimize RAM footprint on free-tier Render.
+Only requested engines are loaded into memory; models are garbage-collected
+after inference to prevent 512MB OOM crashes.
 """
 
 from __future__ import annotations
 
 import base64
+import gc
 import io
 import logging
 import os
@@ -281,6 +286,15 @@ def run_integrated_real_engines(
         "discovery": {"hits": hits},
         "notes": "Best-effort CARD scan via CV_HACKATHON_MODEL_DATASET V4_GENE_DETECTION.",
     }
+
+    # Memory optimization: clean up large models immediately after inference
+    # This prevents 512MB OOM crashes on free-tier Render during spike requests.
+    try:
+        del v1_model, v2_model, v3_model, le_id
+        gc.collect()
+        _log.debug("Models unloaded from memory to free RAM")
+    except Exception:
+        pass
 
     return {"v1": v1_out, "v2": v2_out, "v3": v3_out, "v4": v4_out}
 
