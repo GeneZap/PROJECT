@@ -16,6 +16,7 @@ import gc
 import io
 import logging
 import os
+import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -24,11 +25,16 @@ import joblib
 import matplotlib
 import numpy as np
 import pandas as pd
+from PIL import Image
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 _log = logging.getLogger("genezap.integrated_pipeline")
+
+
+def _env_true(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def _cv_artifact_root() -> Path:
@@ -141,45 +147,42 @@ def run_integrated_real_engines(
             f"Set GENEZAP_CV_ARTIFACT_ROOT or place CV_HACKATHON_MODEL_DATASET next to the backend folder."
         )
 
-    if os.environ.get("GENEZAP_SKIP_TENSORFLOW", "").strip().lower() in ("1", "true", "yes"):
-        raise RuntimeError(
-            "GENEZAP_SKIP_TENSORFLOW is set; integrated V3 Keras model cannot load. "
-            "Unset it for integrated mode or use quad-engine only."
-        )
+    skip_v3 = _env_true("GENEZAP_SKIP_TENSORFLOW") or _env_true("GENEZAP_INTEGRATED_DISABLE_V3")
+    if skip_v3:
+        _log.warning("V3 disabled via env flag (GENEZAP_SKIP_TENSORFLOW/GENEZAP_INTEGRATED_DISABLE_V3)")
 
     # Make TF a bit quieter if it exists.
     os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 
+    # --- V1 ---
     v1_model = joblib.load(v1_dir / "bacterial_id_model.pkl")
     le_id = joblib.load(v1_dir / "label_encoder_id.pkl")
-    
-    # Load V1 feature columns from pickle file (models from training may not have feature_names_in_)
-    v1_feat_file = v1_dir / "v1_feature_columns.pkl"
-    if v1_feat_file.is_file():
-        v1_feat = joblib.load(v1_feat_file)
-    else:
-        # Fallback: try to get from model object (sklearn >= 0.24 may have this)
-        v1_feat = list(getattr(v1_model, "feature_names_in_", []))
+    try:
+        # Load V1 feature columns from pickle file (models from training may not have feature_names_in_)
+        v1_feat_file = v1_dir / "v1_feature_columns.pkl"
+        if v1_feat_file.is_file():
+            v1_feat = joblib.load(v1_feat_file)
+        else:
+            # Fallback: try to get from model object (sklearn >= 0.24 may have this)
+            v1_feat = list(getattr(v1_model, "feature_names_in_", []))
 
-    v2_model = joblib.load(v2_dir / "v2_multi_input_model_FIXED.pkl")
-    v2_features = joblib.load(v2_dir / "v2_feature_columns_FIXED.pkl")
+        if not v1_feat:
+            raise ValueError(
+                "V1 model feature names not found. "
+                "Ensure v1_feature_columns.pkl exists in V1_Model_Output directory."
+            )
 
-    v3_model = _load_tf_model(v3_dir / "v3_vision_model.h5")
+        k_len = len(v1_feat[0]) if v1_feat else 6
+        kmers = Counter(sequence[i : i + k_len] for i in range(max(0, len(sequence) - k_len + 1)))
+        test_row_v1 = [kmers.get(name, 0) for name in v1_feat]
 
-    # --- V1 ---
-    if not v1_feat:
-        raise ValueError(
-            "V1 model feature names not found. "
-            "Ensure v1_feature_columns.pkl exists in V1_Model_Output directory."
-        )
-    
-    k_len = len(v1_feat[0]) if v1_feat else 6
-    kmers = Counter(sequence[i : i + k_len] for i in range(max(0, len(sequence) - k_len + 1)))
-    test_row_v1 = [kmers.get(name, 0) for name in v1_feat]
-    
-    v1_species = le_id.inverse_transform(
-        v1_model.predict(pd.DataFrame([test_row_v1], columns=v1_feat))
-    )[0]
+        v1_species = le_id.inverse_transform(
+            v1_model.predict(pd.DataFrame([test_row_v1], columns=v1_feat))
+        )[0]
+    finally:
+        # Free V1 artifacts before loading V2/V3 to reduce peak RAM.
+        del v1_model, le_id
+        gc.collect()
 
     v1_out = {
         "engine": "V1",
@@ -191,27 +194,34 @@ def run_integrated_real_engines(
     }
 
     # --- V2 ---
-    v2_kmers = Counter(sequence[i : i + 6] for i in range(max(0, len(sequence) - 6 + 1)))
-    antibiotics = [col.replace("Drug_", "") for col in v2_features if str(col).startswith("Drug_")]
-    results_v2: list[dict[str, Any]] = []
-    for ab in antibiotics:
-        features = {col: 0 for col in v2_features}
-        for kmer, count in v2_kmers.items():
-            if kmer in features:
-                features[kmer] = count
-        drug_col = f"Drug_{ab}"
-        if drug_col in features:
-            features[drug_col] = 1
-        X = pd.DataFrame([features])[v2_features]
-        pred = int(v2_model.predict(X)[0])
-        proba = v2_model.predict_proba(X)[0]
-        results_v2.append(
-            {
-                "drug": ab,
-                "status": "RESISTANT" if pred == 1 else "SUSCEPTIBLE",
-                "confidence": float(proba[1] if pred == 1 else proba[0]),
-            }
-        )
+    v2_model = joblib.load(v2_dir / "v2_multi_input_model_FIXED.pkl")
+    v2_features = joblib.load(v2_dir / "v2_feature_columns_FIXED.pkl")
+    try:
+        v2_kmers = Counter(sequence[i : i + 6] for i in range(max(0, len(sequence) - 6 + 1)))
+        antibiotics = [col.replace("Drug_", "") for col in v2_features if str(col).startswith("Drug_")]
+        results_v2: list[dict[str, Any]] = []
+        for ab in antibiotics:
+            features = {col: 0 for col in v2_features}
+            for kmer, count in v2_kmers.items():
+                if kmer in features:
+                    features[kmer] = count
+            drug_col = f"Drug_{ab}"
+            if drug_col in features:
+                features[drug_col] = 1
+            X = pd.DataFrame([features])[v2_features]
+            pred = int(v2_model.predict(X)[0])
+            proba = v2_model.predict_proba(X)[0]
+            results_v2.append(
+                {
+                    "drug": ab,
+                    "status": "RESISTANT" if pred == 1 else "SUSCEPTIBLE",
+                    "confidence": float(proba[1] if pred == 1 else proba[0]),
+                }
+            )
+    finally:
+        # Free V2 artifacts before loading V3/TensorFlow.
+        del v2_model, v2_features
+        gc.collect()
 
     resistant = [r for r in results_v2 if r["status"] == "RESISTANT"]
     v2_out = {
@@ -230,23 +240,43 @@ def run_integrated_real_engines(
 
     # --- V3 ---
     cgr_b64 = _cgr_png_base64(sequence)
-    try:
-        from tensorflow.keras.preprocessing.image import img_to_array, load_img  # type: ignore
+    v3_prob = 0.5
+    if not skip_v3:
+        tmp_path = ""
+        v3_model = None
+        try:
+            v3_model = _load_tf_model(v3_dir / "v3_vision_model.h5")
 
-        # Reuse the generated PNG by decoding it into an array if available.
-        # If we couldn't generate it, fall back to a neutral verdict.
-        if cgr_b64:
-            import tempfile
-
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-                tmp.write(base64.b64decode(cgr_b64.encode("ascii")))
-                tmp_path = tmp.name
-            img_array = np.expand_dims(img_to_array(load_img(tmp_path, target_size=(256, 256))) / 255.0, axis=0)
-            v3_prob = float(v3_model.predict(img_array, verbose=0)[0][0])
-        else:
+            # Reuse the generated PNG by decoding it into an array if available.
+            # If we couldn't generate it, fall back to a neutral verdict.
+            if cgr_b64:
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                    tmp.write(base64.b64decode(cgr_b64.encode("ascii")))
+                    tmp_path = tmp.name
+                img = Image.open(tmp_path).convert("RGB").resize((256, 256))
+                img_array = np.expand_dims(np.asarray(img, dtype=np.float32) / 255.0, axis=0)
+                v3_prob = float(v3_model.predict(img_array, verbose=0)[0][0])
+        except Exception as e:  # noqa: BLE001
+            _log.warning("V3 inference skipped/fallback due to error: %s", e)
             v3_prob = 0.5
-    except Exception:
-        v3_prob = 0.5
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+            if v3_model is not None:
+                try:
+                    del v3_model
+                except Exception:
+                    pass
+            try:
+                from tensorflow.keras import backend as keras_backend  # type: ignore
+
+                keras_backend.clear_session()
+            except Exception:
+                pass
+            gc.collect()
 
     v3_verdict = "RESISTANT" if v3_prob < 0.5 else "SUSCEPTIBLE"
     v3_out = {
@@ -287,14 +317,7 @@ def run_integrated_real_engines(
         "notes": "Best-effort CARD scan via CV_HACKATHON_MODEL_DATASET V4_GENE_DETECTION.",
     }
 
-    # Memory optimization: clean up large models immediately after inference
-    # This prevents 512MB OOM crashes on free-tier Render during spike requests.
-    try:
-        del v1_model, v2_model, v3_model, le_id
-        gc.collect()
-        _log.debug("Models unloaded from memory to free RAM")
-    except Exception:
-        pass
+    gc.collect()
 
     return {"v1": v1_out, "v2": v2_out, "v3": v3_out, "v4": v4_out}
 
