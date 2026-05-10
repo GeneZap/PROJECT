@@ -20,6 +20,9 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 COPY backend /app/backend
 COPY CV_HACKATHON_MODEL_DATASET /app/CV_HACKATHON_MODEL_DATASET
 
+# Download model initialization script (for GitHub Releases auto-download on startup).
+RUN chmod +x /app/backend/download_models.sh
+
 WORKDIR /app/backend
 
 # Writable volume default for dataset pools + batch jobs (override in orchestrator).
@@ -31,4 +34,5 @@ ENV GENEZAP_DATASETS_ROOT=/data/datasets \
 EXPOSE 8000
 
 # Render sets PORT; Fly.io uses 8080 internally — honor PORT first.
-CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# On startup: download models from GitHub releases, then start Uvicorn.
+CMD ["sh", "-c", "bash /app/backend/download_models.sh && exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
