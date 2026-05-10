@@ -51,6 +51,18 @@ def cors_allow_origins() -> list[str]:
     return ["*"]
 
 
+def cors_allow_origin_regex() -> str | None:
+        """
+        Optional regex-based CORS allowlist.
+
+        Useful for Vercel preview deployments where hostnames change per branch/commit.
+        Example:
+            ^https://genezap(-[a-z0-9-]+)?-the-nityant-s-projects\\.vercel\\.app$
+        """
+        raw = os.environ.get("GENEZAP_CORS_ORIGIN_REGEX", "").strip()
+        return raw or None
+
+
 def cors_allow_credentials() -> bool:
     """Browser CORS: credentials with wildcard origin is invalid — keep False when using *."""
     origins = cors_allow_origins()

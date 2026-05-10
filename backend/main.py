@@ -17,7 +17,13 @@ from pydantic import BaseModel, ConfigDict
 
 from analysis import analyze_sequence_bytes
 from dataset_pools.router import router as datasets_router
-from genezap_settings import cors_allow_credentials, cors_allow_origins, log_level, max_upload_bytes
+from genezap_settings import (
+    cors_allow_credentials,
+    cors_allow_origin_regex,
+    cors_allow_origins,
+    log_level,
+    max_upload_bytes,
+)
 from middleware.max_body import MaxBodySizeMiddleware
 
 # ---------------------------------------------------------------------------
@@ -41,13 +47,17 @@ app.include_router(datasets_router)
 app.add_middleware(MaxBodySizeMiddleware, max_bytes=max_upload_bytes())
 
 _origins = cors_allow_origins()
+_origin_regex = cors_allow_origin_regex()
 _credentials = cors_allow_credentials()
 if any((o or "").strip() == "*" for o in _origins):
     log.warning("CORS wildcard origin in use; set GENEZAP_CORS_ORIGINS for production hardening.")
+if _origin_regex:
+    log.info("CORS origin regex enabled")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
+    allow_origin_regex=_origin_regex,
     allow_credentials=_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
