@@ -17,6 +17,12 @@ export async function listPools() {
   return res.json()
 }
 
+export async function getDefaultPool() {
+  const res = await fetch(`${BASE}/pools/default`)
+  if (!res.ok) throw new Error(await readApiErrorDetail(res))
+  return res.json()
+}
+
 export async function createPool(name, description = '') {
   const res = await fetch(`${BASE}/pools`, {
     method: 'POST',

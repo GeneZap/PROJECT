@@ -92,9 +92,28 @@ def list_pools() -> list[PoolSummary]:
     return [PoolSummary(**r) for r in rows]
 
 
+@router.get("/pools/default")
+def get_default_pool() -> PoolDetail:
+    """
+    Get the pre-loaded public dataset pool
+    All users can view and analyze these ~295 reference genomes without creating a pool
+    """
+    pool_id = "default-public-pool"
+    try:
+        m = _repo.get_pool(pool_id)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Default pool not initialized. Run populate_default_pool.py"
+        ) from None
+    return _manifest_to_detail(m)
+
+
 @router.get("/pools/{pool_id}", response_model=PoolDetail)
 def get_pool(pool_id: str) -> PoolDetail:
-    _require_uuid("pool_id", pool_id)
+    # Handle default public pool specially (read-only, no UUID required)
+    if pool_id != "default-public-pool":
+        _require_uuid("pool_id", pool_id)
     try:
         m = _repo.get_pool(pool_id)
     except FileNotFoundError:
@@ -216,7 +235,9 @@ async def analyze_pool_file(
     pitch_demo: bool = Query(False),
     use_integrated_real: bool = Query(False),
 ) -> dict[str, Any]:
-    _require_uuid("pool_id", pool_id)
+    # Handle default public pool specially (read-only, no UUID required)
+    if pool_id != "default-public-pool":
+        _require_uuid("pool_id", pool_id)
     _require_uuid("file_id", file_id)
     try:
         raw, _ = _repo.read_file_bytes(pool_id, file_id)
@@ -240,7 +261,9 @@ def start_batch_job(
     body: BatchAnalyzeRequest,
     background_tasks: BackgroundTasks,
 ) -> dict[str, str]:
-    _require_uuid("pool_id", pool_id)
+    # Handle default public pool specially (read-only, no UUID required)
+    if pool_id != "default-public-pool":
+        _require_uuid("pool_id", pool_id)
     max_b = max_batch_job_files()
     if len(body.file_ids) > max_b:
         raise HTTPException(

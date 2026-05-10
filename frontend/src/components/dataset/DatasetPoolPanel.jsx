@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion as M } from 'framer-motion'
-import { Database, FolderInput, Layers, Loader2, Play, RefreshCw, Upload } from 'lucide-react'
+import { Database, FolderInput, Layers, Loader2, Play, RefreshCw, Upload, Lock } from 'lucide-react'
 import * as api from '../../services/datasetsApi.js'
 
 function formatBytes(n) {
@@ -27,6 +27,7 @@ export function DatasetPoolPanel({
   onGlobalLoading,
 }) {
   const [pools, setPools] = useState([])
+  const [defaultPool, setDefaultPool] = useState(null)
   const [poolId, setPoolId] = useState('')
   const [detail, setDetail] = useState(null)
   const [loadingPools, setLoadingPools] = useState(false)
@@ -42,6 +43,15 @@ export function DatasetPoolPanel({
     setLoadingPools(true)
     onError(null)
     try {
+      // Load default public pool
+      try {
+        const defaultData = await api.getDefaultPool()
+        setDefaultPool(defaultData)
+      } catch (e) {
+        console.warn('Default pool not available:', e)
+      }
+
+      // Load user pools
       const list = await api.listPools()
       setPools(list)
       setPoolId((prev) => prev || (list[0]?.pool_id ?? ''))
@@ -58,13 +68,28 @@ export function DatasetPoolPanel({
       return
     }
     try {
+      // Handle default pool specially (don't call UUID-validated endpoints)
+      const defaultPoolId = defaultPool?.pool_id || 'default-public-pool'
+      if (poolId === defaultPoolId) {
+        if (defaultPool) {
+          setDetail(defaultPool)
+        } else {
+          // Reload default pool if not yet available
+          const freshDefault = await api.getDefaultPool()
+          setDefaultPool(freshDefault)
+          setDetail(freshDefault)
+        }
+        setSelectedIds(new Set())
+        return
+      }
+      // For user pools, fetch from API (only UUIDs allowed here)
       const d = await api.getPool(poolId)
       setDetail(d)
       setSelectedIds(new Set())
     } catch (e) {
       onError(e.message || 'Could not load pool.')
     }
-  }, [poolId, onError])
+  }, [poolId, defaultPool, onError])
 
   useEffect(() => {
     void refreshPools()
@@ -234,6 +259,34 @@ export function DatasetPoolPanel({
       </div>
 
       <div className="grid gap-4 rounded-2xl border border-[var(--gz-border)] bg-[var(--gz-surface)] p-4 sm:grid-cols-2 sm:p-5">
+        {/* Public Pool Section */}
+        {defaultPool && (
+          <div className="rounded-xl bg-gradient-to-br from-cyan-500/10 to-teal-500/10 border border-cyan-400/20 p-4 sm:col-span-2">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-cyan-400/80">📚 Public Dataset Collection</p>
+              <Lock className="size-3.5 text-cyan-400/60" aria-hidden />
+            </div>
+            <p className="text-xs text-[var(--gz-muted)] mb-3">
+              {defaultPool.file_count} pre-loaded genomes, read-only
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setPoolId(defaultPool.pool_id || 'default-public-pool')
+                setDetail(defaultPool)
+                setSelectedIds(new Set())
+              }}
+              className={`w-full py-2.5 px-3 rounded-lg text-xs font-medium transition-colors ${
+                poolId === (defaultPool.pool_id || 'default-public-pool')
+                  ? 'bg-cyan-500/30 border border-cyan-400/50 text-cyan-200'
+                  : 'border border-cyan-400/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
+              }`}
+            >
+              Use Public Pool ({defaultPool.file_count} genomes)
+            </button>
+          </div>
+        )}
+
         <div className="space-y-2">
           <label className="gz-label">Active pool</label>
           <select
@@ -285,7 +338,8 @@ export function DatasetPoolPanel({
           <button
             type="button"
             onClick={onUploadClick}
-            disabled={!poolId}
+            disabled={!poolId || poolId === (defaultPool?.pool_id || 'default-public-pool')}
+            title={poolId === (defaultPool?.pool_id || 'default-public-pool') ? 'Cannot upload to public pool (read-only)' : ''}
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--gz-border)] bg-[var(--gz-field-bg)] py-3 text-sm font-medium hover:border-cyan-400/35 disabled:opacity-45"
           >
             <Upload className="size-4" aria-hidden />
@@ -310,7 +364,8 @@ export function DatasetPoolPanel({
           />
           <button
             type="button"
-            disabled={!poolId || !importPath.trim()}
+            disabled={!poolId || !importPath.trim() || poolId === (defaultPool?.pool_id || 'default-public-pool')}
+            title={poolId === (defaultPool?.pool_id || 'default-public-pool') ? 'Cannot import to public pool (read-only)' : ''}
             onClick={() => void onImportPath()}
             className="mt-3 w-full rounded-xl bg-[var(--gz-field-bg)] py-2.5 text-xs font-medium ring-1 ring-[var(--gz-border)] hover:ring-cyan-400/35 disabled:opacity-45"
           >
