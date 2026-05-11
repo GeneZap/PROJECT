@@ -100,5 +100,12 @@ def path_import_allowed() -> bool:
     return _env_bool("GENEZAP_ALLOW_DATASET_PATH_IMPORT", default=False)
 
 
+def allow_integrated_real() -> bool:
+    """Allow the heavyweight integrated artifact stack only when explicitly enabled."""
+    if is_production():
+        return _env_bool("GENEZAP_ALLOW_INTEGRATED_REAL", default=False)
+    return _env_bool("GENEZAP_ALLOW_INTEGRATED_REAL", default=True)
+
+
 def log_level() -> str:
     return os.environ.get("GENEZAP_LOG_LEVEL", "INFO").strip().upper() or "INFO"

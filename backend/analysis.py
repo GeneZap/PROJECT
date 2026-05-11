@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from quad_engine_inference import cgr_png_bytes_v3_style, run_quad_engines
+from genezap_settings import allow_integrated_real
 from v2_pharmacology_table import merge_v2_pharmacology_into_payload
 
 _BASES = ("A", "C", "G", "T")
@@ -504,8 +505,16 @@ def analyze_sequence_bytes(
         kmer_stats = {k: float(v) for k, v in raw.items()}
 
     client_warnings: list[str] = []
+    integrated_real_enabled = bool(use_integrated_real) and allow_integrated_real()
 
-    if use_integrated_real:
+    if use_integrated_real and not integrated_real_enabled:
+        client_warnings.append(
+            "Integrated engine was requested, but this deployment blocks the heavyweight artifact stack; "
+            "used quad-engine fallback instead. Set GENEZAP_ALLOW_INTEGRATED_REAL=1 only on a host with enough resources."
+        )
+        _log.warning("use_integrated_real ignored: heavyweight artifact stack disabled for this deployment")
+
+    if integrated_real_enabled:
         # Lazy import: avoids loading joblib/TF-heavy integrated stack unless requested.
         try:
             from integrated_pipeline_real import run_integrated_real_engines
@@ -531,8 +540,8 @@ def analyze_sequence_bytes(
 
     # Pitch demo replaces all engine JSON; it must not run together with integrated mode
     # or it would silently overwrite hackathon artifact outputs.
-    pitch_effective = bool(pitch_demo) and not bool(use_integrated_real)
-    if pitch_demo and use_integrated_real:
+    pitch_effective = bool(pitch_demo) and not integrated_real_enabled
+    if pitch_demo and integrated_real_enabled:
         client_warnings.append(
             "Salmonella MDR pitch demo was not applied because it replaces engine payloads; "
             "uncheck Hackathon integrated engine to use pitch demo, or leave pitch demo off for integrated."
