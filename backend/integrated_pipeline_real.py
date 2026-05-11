@@ -172,12 +172,18 @@ def run_integrated_real_engines(
                 "Ensure v1_feature_columns.pkl exists in V1_Model_Output directory."
             )
 
-        k_len = len(v1_feat[0]) if v1_feat else 6
+        # Filter to keep only valid k-mers (ACGT sequences), drop metadata columns
+        valid_kmers = [f for f in v1_feat if isinstance(f, str) and len(f) > 0 and all(c in "ACGT" for c in f.upper())]
+        if not valid_kmers:
+            # If no valid k-mers found, use original list (might be numeric k-mer indices)
+            valid_kmers = v1_feat
+
+        k_len = len(valid_kmers[0]) if valid_kmers and isinstance(valid_kmers[0], str) else 6
         kmers = Counter(sequence[i : i + k_len] for i in range(max(0, len(sequence) - k_len + 1)))
-        test_row_v1 = [kmers.get(name, 0) for name in v1_feat]
+        test_row_v1 = [kmers.get(name, 0) for name in valid_kmers]
 
         v1_species = le_id.inverse_transform(
-            v1_model.predict(pd.DataFrame([test_row_v1], columns=v1_feat))
+            v1_model.predict(pd.DataFrame([test_row_v1], columns=valid_kmers))
         )[0]
     finally:
         # Free V1 artifacts before loading V2/V3 to reduce peak RAM.
