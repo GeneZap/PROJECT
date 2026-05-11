@@ -22,20 +22,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 # Application + hackathon model bundle (required for integrated + quad artifact paths).
 COPY backend /app/backend
 COPY CV_HACKATHON_MODEL_DATASET /app/CV_HACKATHON_MODEL_DATASET
+COPY data/datasets/pools/default-public-pool /app/bootstrap_data/datasets/pools/default-public-pool
 
 # Download model initialization script (for GitHub Releases auto-download on startup).
-RUN chmod +x /app/backend/download_models.sh
+RUN chmod +x /app/backend/download_models.sh /app/backend/entrypoint.sh
 
 WORKDIR /app/backend
 
 # Writable volume default for dataset pools + batch jobs (override in orchestrator).
 RUN mkdir -p /data/datasets
 ENV GENEZAP_DATASETS_ROOT=/data/datasets \
+    GENEZAP_PUBLIC_DATASET_SEED_ROOT=/app/bootstrap_data/datasets \
     GENEZAP_CV_ARTIFACT_ROOT=/app/CV_HACKATHON_MODEL_DATASET \
     GENEZAP_ENV=production
 
 EXPOSE 8000
 
 # Render sets PORT; Fly.io uses 8080 internally — honor PORT first.
-# On startup: download models from GitHub releases, then start Uvicorn.
-CMD ["sh", "-c", "bash /app/backend/download_models.sh && exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# On startup: seed the public pool if needed, download models from GitHub releases, then start Uvicorn.
+CMD ["/app/backend/entrypoint.sh"]

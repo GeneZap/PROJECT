@@ -11,7 +11,10 @@ frontend/.vercel
 *.md
 !backend/**/*.md
 data/datasets/*
-!data/datasets/.gitkeep
+!data/datasets/pools/
+data/datasets/pools/*
+!data/datasets/pools/default-public-pool/
+!data/datasets/pools/default-public-pool/**
 # Large local training corpora (keep model outputs in image via CV_HACKATHON_MODEL_DATASET selectively)
 **/CNN_CGR_DATASET*
 **/DATASET
