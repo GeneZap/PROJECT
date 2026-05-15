@@ -104,12 +104,12 @@ class AnalyzeResponse(BaseModel):
     susceptibility_profile: SusceptibilityProfileModel | None = None
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "genezap"}
 
 
-@app.get("/health/live")
+@app.api_route("/health/live", methods=["GET", "HEAD"])
 def health_live() -> dict[str, str]:
     """Process is up (orchestrator / load balancers)."""
     return {"status": "live", "service": "genezap"}
